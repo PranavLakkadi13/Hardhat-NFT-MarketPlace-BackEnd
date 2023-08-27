@@ -42,12 +42,6 @@ module.exports = {
       chainId: 80001,
       blockConfirmations: 6,
     },
-    ganache: {
-      url: RPC_URL_G,
-      accounts: [Private_Key_G],
-      chainId: 1337,
-      blockConfirmations: 1,
-    },
   },
   solidity: {
     compilers: [
