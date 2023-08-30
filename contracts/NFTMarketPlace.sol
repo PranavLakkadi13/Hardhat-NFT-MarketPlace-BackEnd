@@ -110,9 +110,9 @@ contract NFTMarketPlace is ReentrancyGuard{
             revert NFTMarketPlace__PriceNotMet(NFTContractAddress,tokenId,listingItem.PriceNFT);
         }
 
-        // unchecked {
+        unchecked {
             s_proceeds[listingItem.seller] += msg.value;
-        // }
+        }
 
         delete (s_Listings[NFTContractAddress][tokenId]);
 
@@ -182,5 +182,9 @@ contract NFTMarketPlace is ReentrancyGuard{
 
     function getProceeds(address seller) external view returns(uint256) {
         return s_proceeds[seller];
+    }
+
+    function getBalance() public view returns(uint256) {
+        return address(this).balance;
     }
 }

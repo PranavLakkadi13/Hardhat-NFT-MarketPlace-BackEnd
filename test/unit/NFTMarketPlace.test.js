@@ -102,28 +102,24 @@ const { developmentChains } = require("../../helper-hardhat-config")
         });
 
         describe("BuyItem function ", async () => {
-            it("The item not listed cant be bought", async () => {
+            beforeEach(async () => {
                 await BasicNft.mintNft();
                 await BasicNft.approve(NFTMarketPlace.address, TokenId);
                 await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
+            })
+            it("The item not listed cant be bought", async () => {
                 await expect(
                     NFTMarketPlace.BuyItem(BasicNft.address, 1)
                 ).to.be.revertedWith("NFTMarketPlace__NotListed");
             });
             
             it("Fails when enough ether isnt sent", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 await expect(
                     NFTMarketPlace.BuyItem(BasicNft.address, TokenId)
                 ).to.be.revertedWith("NFTMarketPlace__PriceNotMet");
             });
 
             it("The Nft is bought", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 assert(
                     await NFTMarketPlace.connect(player).BuyItem(
                         BasicNft.address,
@@ -134,9 +130,6 @@ const { developmentChains } = require("../../helper-hardhat-config")
             });
 
             it("Checks if the Nft is transfered", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 await NFTMarketPlace.connect(player).BuyItem(
                     BasicNft.address,
                     TokenId,
@@ -146,9 +139,6 @@ const { developmentChains } = require("../../helper-hardhat-config")
             });
 
             it("emits an event when bought", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 const trx = await NFTMarketPlace.connect(player).BuyItem(
                     BasicNft.address,
                     TokenId,
@@ -163,9 +153,6 @@ const { developmentChains } = require("../../helper-hardhat-config")
             });
 
             it("checks if the proceeds are added to the mapping", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 await NFTMarketPlace.connect(player).BuyItem(
                     BasicNft.address,
                     TokenId,
@@ -176,9 +163,6 @@ const { developmentChains } = require("../../helper-hardhat-config")
             });
 
             it("resets the listing mapping", async () => {
-                await BasicNft.mintNft();
-                await BasicNft.approve(NFTMarketPlace.address, TokenId);
-                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
                 await NFTMarketPlace.connect(player).BuyItem(
                     BasicNft.address,
                     TokenId,
@@ -190,10 +174,12 @@ const { developmentChains } = require("../../helper-hardhat-config")
         });
 
         describe("Cancel Listing", () => {
-            it("Only allows the owner to Cancel the listing", async () => {
+            beforeEach(async () => {
                 await BasicNft.mintNft();
                 await BasicNft.approve(NFTMarketPlace.address, TokenId);
                 await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
+            });
+            it("Only allows the owner to Cancel the listing", async () => {
                 await expect(
                     NFTMarketPlace.connect(player).CancelListing(
                         BasicNft.address,
@@ -203,12 +189,134 @@ const { developmentChains } = require("../../helper-hardhat-config")
             });
 
             it("Only allows a listed NFT to be cancelled", async () => {
+                await expect(
+                    NFTMarketPlace.CancelListing(BasicNft.address, "1")
+                ).to.be.revertedWith("ERC721: invalid token ID");
+            });
+
+            it("emits an event after the listing is cancelled", async () => {
+                await expect(
+                    await NFTMarketPlace.CancelListing(BasicNft.address, "0")
+                ).to.emit(NFTMarketPlace, "ItemCancelled");
+            });
+
+            it("verify the emited events", async () => {
+                const trx = await NFTMarketPlace.CancelListing(
+                  BasicNft.address,
+                  "0"
+                );
+                const trxRecipt = await trx.wait(1);
+                const msgAddress = await trxRecipt.events[0].args[0];
+                const NFTContractAddress = await trxRecipt.logs[0].topics[2];
+                const tokenId = await trxRecipt.events[0].args.tokenId;
+                assert.equal(msgAddress, deployer);
+                assert.equal(
+                  NFTContractAddress,
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512"
+                );
+                assert.equal(tokenId.toString(), TokenId);
+            })
+
+            it("After the listing is cancelled the mapping is set to 0", async () => {
+                let x = await BasicNft.getTokenCounter();
+                await NFTMarketPlace.CancelListing(BasicNft.address, (x - 1));
+                let y = await NFTMarketPlace.getListing(BasicNft.address, "0");
+                assert.equal(y.PriceNFT, "0");
+                assert.equal(
+                    y.seller,
+                    "0x0000000000000000000000000000000000000000"
+                );
+            });
+        });
+
+        describe("Update Listing", () => {
+            beforeEach(async () => {
                 await BasicNft.mintNft();
                 await BasicNft.approve(NFTMarketPlace.address, TokenId);
                 await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
+            });
+            it("Updates only if the contract is listed else fails", async () => {
                 await expect(
-                  NFTMarketPlace.CancelListing(BasicNft.address, "1")
-                ).to.be.revertedWith("ERC721: invalid token ID");
-            })
-        })
+                    NFTMarketPlace.UpdateListing(
+                        BasicNft.address,
+                        "1",
+                        ethers.utils.parseEther("0.001")
+                    )
+                ).to.be.revertedWith("NFTMarketPlace__NotListed");
+            });
+            
+            it("Fails if the person updating is not the owner", async () => {
+                await expect(
+                  NFTMarketPlace.connect(player).UpdateListing(
+                    BasicNft.address,
+                    "0",
+                    ethers.utils.parseEther("0.001")
+                  )
+                ).to.be.revertedWith("NFTMarketPlace__NotOwner");
+            });
+
+            it("updates the state", async () => {
+                const oldValue = await NFTMarketPlace.getListing(
+                    BasicNft.address,
+                    "0"
+                );
+                await
+                    NFTMarketPlace.UpdateListing(
+                        BasicNft.address,
+                        "0",
+                        ethers.utils.parseEther("0.001")
+                    );
+                const NewValue = await NFTMarketPlace.getListing(
+                    BasicNft.address,
+                    "0"
+                );
+                assert(NewValue.PriceNFT.toString() != oldValue.PriceNFT.toString());
+            });
+            
+            it("Emits an event when update listing has taken place", async () => {
+                await expect(
+                    await NFTMarketPlace.UpdateListing(
+                        BasicNft.address,
+                        "0",
+                        ethers.utils.parseEther("0.001")
+                    )
+                ).to.emit(NFTMarketPlace, "ItemListing");
+            });
+        });
+
+        describe('Withdraw function', () => {
+            beforeEach(async () => {
+                await BasicNft.mintNft();
+                await BasicNft.approve(NFTMarketPlace.address, TokenId);
+                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
+            });
+
+            it("Fails when a person with 0 balance calls it", async () => {
+                await expect(
+                    NFTMarketPlace.Withdraw()
+                ).to.be.reverted;
+            });
+
+            it("Passes when a correct function is called", async () => {
+                await NFTMarketPlace.connect(player).BuyItem(
+                    BasicNft.address,
+                    TokenId,
+                    { value: price }
+                );
+                await expect(await NFTMarketPlace.Withdraw());
+                const NewBalance = await NFTMarketPlace.getBalance();
+                assert.equal(NewBalance.toString(), "0");
+            });
+        });
+
+        describe("Basic NFT Contract", () => {
+            it("Checks the Token URI of Basic NFT contract", async () => {
+                await BasicNft.mintNft();
+                await BasicNft.approve(NFTMarketPlace.address, TokenId);
+                await NFTMarketPlace.ListItem(BasicNft.address, TokenId, price);
+                const tokenURI = await BasicNft.tokenURI("0");
+                const token = "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json"
+                assert.equal(tokenURI.toString(), token);
+            });
+            });
     });

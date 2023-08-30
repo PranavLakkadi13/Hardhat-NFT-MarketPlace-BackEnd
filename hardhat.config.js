@@ -79,7 +79,7 @@ module.exports = {
     // outputFile: "gas-reporter.txt",
     noColors: true,
     currency: "USD",
-    // coinmarketcap: Coinmarketcap_API_KEY,
+    coinmarketcap: Coinmarketcap_API_KEY,
     token: "ETH",
   },
   mocha: {
