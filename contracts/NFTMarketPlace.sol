@@ -72,7 +72,7 @@ contract NFTMarketPlace is ReentrancyGuard{
      * @param tokenId the tokenId of the NFT
      * @param price the sale price of the NFT to be listed
      * @dev We could have an escrow contract but I choose this way bcoz the people could still
-     * be holding their nfts until bought by the buyer 
+     *      be holding their nfts until bought by the buyer 
      */ 
     function ListItem(address NFTContractAddress, uint256 tokenId, uint256 price) external 
     notListed(NFTContractAddress, tokenId, msg.sender) 
@@ -96,8 +96,7 @@ contract NFTMarketPlace is ReentrancyGuard{
     /** 
      * @notice Method for buying listing
      * @notice The owner of an NFT could unapprove the marketplace,
-     * which would cause this function to fail
-     * Ideally you'd also have a `createOffer` functionality.
+     *         which would cause this function to fail Ideally you'd also have a `createOffer` functionality.
      * @param NFTContractAddress Address of NFT contract
      * @param tokenId Token ID of NFT
      */
