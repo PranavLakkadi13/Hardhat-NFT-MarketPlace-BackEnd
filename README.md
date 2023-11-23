@@ -19,7 +19,7 @@ yarn init
 
 yarn hardhat node
 
-yarn hardhat deploy
+yarn hardhat deploy --network localhost 
 
 ```
 
